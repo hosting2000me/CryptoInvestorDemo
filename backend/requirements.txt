@@ -5,3 +5,22 @@ jinja2==3.1.6
 pydantic==2.11.9
 python-multipart==0.0.20
 uvicorn==0.34.0
+
+# Crypto Analytics Dependencies
+#psycopg2-binary==2.9.10
+polars==1.22.0
+pandas==2.2.3
+deltalake==0.25.5
+pyarrow==18.1.0
+empyrical-reloaded==0.5.12
+pyfolio-reloaded==0.9.9
+numpy==2.3.2
+
+# SQLAlchemy + asyncpg Dependencies (alternative to psycopg2)
+sqlalchemy==2.0.25
+asyncpg==0.29.0
+
+# Testing Dependencies
+pytest==7.4.0
+pytest-cov==4.1.0
+pytest-asyncio==0.21.1

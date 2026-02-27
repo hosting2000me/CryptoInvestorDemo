@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 # Import the app
-from minimal_fastapi_skeleton.app.app import app
+from app.app import app
 
 client = TestClient(app)
 

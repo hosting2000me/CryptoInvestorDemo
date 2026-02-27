@@ -1,0 +1,53 @@
+{
+  "address": "bc1qtestaddress123",
+  "profit_pct": 0.012482662968099856,
+  "sharpe_ratio": NaN,
+  "drawdown": 0.0,
+  "exposure": 0.8,
+  "count_days_in_market": 0,
+  "benchmark_profit": 0.020979020979021046,
+  "benchmark_sharpe": NaN,
+  "benchmark_drawdown": 0.0,
+  "balance_history": {
+    "date_": [
+      "2020-01-04",
+      "2020-01-05"
+    ],
+    "close_": [
+      7150.0,
+      7300.0
+    ],
+    "t_value": [
+      30000000,
+      20000000
+    ],
+    "t_usdvalue": [
+      -2145.0,
+      -1460.0
+    ],
+    "t_value_cumsum": [
+      30000000,
+      50000000
+    ],
+    "t_usdvalue_cumsum": [
+      -2145.0,
+      -3605.0
+    ],
+    "delta_usd": [
+      0.0,
+      45.0
+    ],
+    "returns": [
+      null,
+      0.012482662968099861
+    ],
+    "log_returns": [
+      null,
+      0.012405396857487736
+    ],
+    "exposure": [
+      0.6,
+      1.0
+    ]
+  }
+}
