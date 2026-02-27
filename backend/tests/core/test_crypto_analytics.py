@@ -144,14 +144,19 @@ class TestCryptoAnalytics:
         with pytest.raises(ValueError, match="No output transactions found"):
             service.get_address_balance(TEST_ADDRESS)
     
-    def test_get_benchmark_metrics(self, crypto_analytics, mock_db_controller):
-        """Test getting benchmark metrics."""
-        result = crypto_analytics.get_benchmark_metrics()
+    def test_get_address_transactions_benchmark_metrics(self, crypto_analytics, mock_db_controller, mock_delta_controller):
+        """Test that benchmark metrics in get_address_transactions match expected results."""
+        result = crypto_analytics.get_address_transactions(TEST_ADDRESS)
         
-        # Verify the result structure
-        assert hasattr(result, 'sharpe')
-        assert hasattr(result, 'drawdown')
-        assert hasattr(result, 'profit_pct')
+        # Load expected results from file
+        expected_file = os.path.join(os.path.dirname(__file__), '..', 'expected_results', 'benchmark_metrics_result.json')
+        with open(expected_file, 'r') as f:
+            expected = json.load(f)
+        
+        # Compare benchmark metrics with tolerance
+        assert abs(result["benchmark_profit"] - expected['profit_pct']) < 0.0001
+        assert abs(result["benchmark_sharpe"] - expected['sharpe']) < 0.0001
+        assert abs(result["benchmark_drawdown"] - expected['drawdown']) < 0.0001
     
     def test_get_top_addresses_by_profit(self, crypto_analytics, mock_delta_controller):
         """Test getting top addresses by profit."""

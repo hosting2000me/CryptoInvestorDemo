@@ -314,15 +314,7 @@ class CryptoAnalytics:
         logger.info(f"Calculated balance history for address {btc_address}")
         return df
     
-    def get_benchmark_metrics(self) -> BenchmarkMetrics:
-        """
-        Get benchmark metrics for Bitcoin (buy and hold strategy).
-        
-        Returns:
-            BenchmarkMetrics object
-        """
-        btc_quotes = asyncio.run(self.db_controller.get_btc_quotes())
-        return self._calculate_benchmark(btc_quotes)
+
     
     def get_top_addresses_by_profit(self, date: str, filters: Optional[Dict] = None) -> list:
         """

@@ -143,24 +143,7 @@ def get_address_balance(address: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
 
-@app.get("/api/crypto/benchmark")
-def get_benchmark():
-    """
-    Get benchmark metrics for Bitcoin (buy and hold strategy).
-    
-    Returns Sharpe ratio, drawdown, and profit percentage.
-    """
-    if analytics is None:
-        raise HTTPException(status_code=503, detail="CryptoAnalytics service is not available (PostgreSQLController missing)")
-    try:
-        result = analytics.get_benchmark_metrics()
-        return {
-            "sharpe": result.sharpe,
-            "drawdown": result.drawdown,
-            "profit_pct": result.profit_pct
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
 
 @app.get("/api/crypto/top-addresses")
 def get_top_addresses(
