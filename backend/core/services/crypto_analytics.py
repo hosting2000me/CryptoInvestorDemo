@@ -176,6 +176,67 @@ class CryptoAnalytics:
             "balance_history": df
         }
     
+    def get_address_transactions2(btc_addr, trans_in, trans_out, btc_prices):
+        trans_out = trans_out.filter(pl.col('address') == btc_addr)
+        trans_in = trans_in.filter(pl.col('address') == btc_addr)
+        trans_out = trans_out.sort('t_time', descending = False)
+        # конвертируем время в дату
+        trans_in = trans_in.with_columns(pl.col('t_time').cast(pl.Date).alias('date_'))
+        trans_out = trans_out.with_columns(pl.col('t_time').cast(pl.Date).alias('date_'))
+        first_output = trans_out.select(pl.col('date_')).row(0)[0]
+        btc_prices = btc_prices.filter(pl.col('date_') >= first_output)
+        # UNION IN and OUT trans (in_transactions with minus  
+        # мы берем со знаком минус t_value из inputs и t_usdvalue из outputs, так как отдаем битки и получаем баксы
+        df1 = trans_in.with_columns(pl.col("t_value") * (-1))
+        df2 = trans_out.with_columns(pl.col("t_usdvalue") * (-1))
+        trans_all = pl.concat([df1, df2]) 
+        # Сортировка по возрастанию дат
+        trans_all = trans_all.sort('t_time', descending = False)
+        # группировка по датам для этого кошелька
+        #trans_all = trans_all.with_columns(pl.col('t_time').cast(pl.Date).alias('date_'))
+        trans_all = trans_all.group_by("date_").agg(pl.col("t_value").sum(), pl.col("t_usdvalue").sum()) 
+        # Объединяем с ценами на биток
+        df = btc_prices.join(trans_all , on='date_', how='left')
+        #df = df.with_columns(pl.col('t_value').fill_null(0))
+        df = df.fill_null(0)
+        # добавляем нарастающий итог t_value & t_usdvalue на каждую дату, поле _cumsum
+        df = df.with_columns(pl.col("t_value").cum_sum().name.suffix("_cumsum"),)  
+        df = df.with_columns(pl.col("t_usdvalue").cum_sum().name.suffix("_cumsum"),) 
+        # Защита от того что мы продаем битки которых у нас нет
+        # Если мы ушли в минус по биткам то обнуляем эту транзакцию и потом считаем нарастающий итог по новой
+        df = df.with_columns(pl.when(pl.col("t_value_cumsum") >= 0).then(pl.col("t_usdvalue")).otherwise(0).alias('t_usdvalue'))
+        df = df.with_columns(pl.when(pl.col("t_value_cumsum") >= 0).then(pl.col("t_value")).otherwise(0).alias('t_value'))
+        df = df.with_columns(pl.col("t_value").cum_sum().name.suffix("_cumsum"),)  
+        df = df.with_columns(pl.col("t_usdvalue").cum_sum().name.suffix("_cumsum"),) 
+        # считаем маржу, это уже будет нарастающий итог(!!!)
+        df = df.with_columns(  (pl.col('t_usdvalue_cumsum') + pl.col('t_value_cumsum')*pl.col('close_')/100000000).alias('delta_usd')  )    
+        # считаем ежедневный return в процентах (тело считаем как t_value_cumsum*btc_price) либо как max(t_value_cumsum)
+        # initial_value как максимальный приход денег в рынок, когда покупаем btc то t_usdvalue со знаком минус
+        initial_value = abs(df.select(pl.col("t_usdvalue_cumsum")).min().item(0,0))
+        max_btc_value = df.select(pl.col("t_value_cumsum").abs()).max().item(0,0)
+        df = df.with_columns( (pl.col("delta_usd") + initial_value).pct_change().alias("returns"))
+        df = df.with_columns( pl.col('returns').log1p().alias("log_returns")) # переводим в logNormal returns (natural logarithm)
+        #df = df.with_columns(pl.col("returns").cum_sum().name.suffix("_cumsum"),) 
+        #df = df.with_columns(pl.col("returns_cumsum").exp())
+        df = df.with_columns( (pl.col("t_value_cumsum") / max_btc_value).alias("exposure"))
+        exposure = df['exposure'].mean()
+        profit_pct = df["log_returns"].sum()
+        profit_pct = np.exp(profit_pct) - 1
+        df = df.fill_nan(0)
+        # вычисляем количество дней в рынке с битком на руках
+        count_days_in_market = len(df.filter(pl.col('t_value_cumsum') > 100000000))
+        df = df.with_columns(pl.col('delta_usd').alias('value')).to_pandas()
+        #df = df.with_columns(pl.col('returns_cumsum').alias('value')).to_pandas()
+        #df = df.fillna(0)
+        sharp_ratio = strata.sharpe_ratio(df.returns, risk_free=0, period='daily')
+        drawdown = strata.max_drawdown(df.returns)
+        benchmark_sharpe, benchmark_drawdown = benchmark(btc_prices) 
+        #print(benchmark_sharp, benchmark_drawdown)
+        # добавляем нарастающий итог стоимости портфеля на каждую дату, поле _cumsum
+        #trans_all = trans_all.with_columns(pl.col("t_usdvalue").cum_sum().name.suffix("_cumsum"),)
+        #trans_all.sort('date_', descending = False)
+        return df, sharp_ratio, drawdown, exposure, benchmark_sharpe, benchmark_drawdown, count_days_in_market, profit_pct
+    
     def get_address_balance(self, btc_address: str) -> pl.DataFrame:
         """
         Calculate balance history for a Bitcoin address.
